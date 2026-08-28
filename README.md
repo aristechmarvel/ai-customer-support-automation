@@ -2,6 +2,10 @@
 
 An AI-powered customer support workflow built with **n8n** that analyzes customer inquiries, generates structured responses, and routes them through human verification before sending a final response.
 
+## Workflow Overview
+
+![Workflow Overview](Screenshot7.png)
+
 ## Workflow
 
 **Customer Form → Data Preparation → AI Agent → Structured Output → Merge → Human Review → Decision → Customer Email**
