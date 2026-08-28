@@ -1,0 +1,693 @@
+{
+  "name": "My workflow 3",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -96,
+        -96
+      ],
+      "id": "52ef2bab-c927-4574-928f-2c3f845d984e",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "formTitle": "Customer feedback",
+        "formDescription": "Send us a message and we will revert soon",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Name"
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email"
+            },
+            {
+              "fieldLabel": "Complaint"
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -528,
+        -432
+      ],
+      "id": "c7a8b35a-b6d7-4251-b2f2-f7a80716674e",
+      "name": "New enquiry",
+      "webhookId": "nslsdsds-ds-sdsds-d",
+      "notesInFlow": true,
+      "notes": "Data sent for cleaning"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.4,
+          "topK": 20,
+          "topP": 1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        -176
+      ],
+      "id": "0f29d6c8-101c-48ae-b7b1-1ab00e0ff8e3",
+      "name": "Processes enquiry",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "tW7eZEdffdfdrWX6eoNo0juP",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "51e9a324-31bc-4608-9b51-92926667207b",
+              "name": "Name",
+              "value": "={{ $json[\"Name\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "80e63e71-340d-47c7-8e39-f975adf8c19b",
+              "name": "Email",
+              "value": "={{ $json[\"Email\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "5ff5b66b-8fd5-480c-abb3-a7c2de7f12b5",
+              "name": "Complaint",
+              "value": "={{ $json.Complaint }}",
+              "type": "string"
+            },
+            {
+              "id": "cf835ef1-f167-4f35-8778-224ea75212a3",
+              "name": "sessionId",
+              "value": "={{ $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "a1be2a21-0d01-4fb9-924f-4afb2126701a",
+              "name": "submittedAt",
+              "value": "={{ $json.submittedAt }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        -432
+      ],
+      "id": "e45e486c-1f63-4a98-8659-82bae32f673c",
+      "name": "Cleans data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = JSON.parse($json.output);\n\nreturn [\n  {\n    json: parsed\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -352
+      ],
+      "id": "462ffc4a-c0df-43ea-949d-8b6004afbeba",
+      "name": "Parse output"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.data.approved }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    },
+                    "id": "3a0a2be2-3c3d-43e4-839d-a5c8775b4c72"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Approved"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "6af512aa-a8cc-4c1b-b99a-356671422a18",
+                    "leftValue": "={{ $json.data.approved }}",
+                    "rightValue": false,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Declined"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        736,
+        -400
+      ],
+      "id": "56d55377-7b4f-40ff-baf8-edcb79b08e25",
+      "name": "Approved or not?",
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "gmail@gmail.com",
+        "subject": "Approval required",
+        "message": "=AWAITING YOUR APPROVAL\n\nCustomer Information\nName:{{ $json[\"Name\"] }}\nEmail:{{ $json[\"Email\"] }}\nRequest:{{ $json.Complaint }}\nsessionId: {{ $json.sessionId }}\nsubmittedAt:{{ $json.submittedAt }}\n\nAI interpretation and response\nCustomer Intent: {{ $json.intent }}\nCustomer Sentiment: {{ $json.sentiment }}\nAI confidence: {{ $json.confidence }}\nAI suggested response: {{ $json.suggested_response }}\n\nApprove if appropriate or decline if inappropriate.\nThank you Sir",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        -320
+      ],
+      "id": "3176ea72-9496-4eaf-a46d-54c14bd7b6e9",
+      "name": "Send for approval",
+      "webhookId": "nslsdsds-ds-sdsds-d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Fd6B3RL4334jo29v0bNL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.Complaint }}",
+        "options": {
+          "systemMessage": "=You are a Customer Support Agent.\n\nYour task is to analyze the customer's prompt (user message).\n\nReturn EXACTLY ONE JSON OBJECT containing these four properties:\n\n{\n  \"intent\": \"the customer's primary reason for contacting us\",\n  \"sentiment\": \"positive, neutral, or negative\",\n  \"confidence\": 0.0,\n  \"suggested_response\": \"the response you recommend sending\"\n}\n\nIMPORTANT:\n-If this response is being re-evaluated after human rejection, reconsider the response and improve it.\n- Return ONE JSON OBJECT only.\n- Do NOT return a JSON array.\n- Do NOT return multiple JSON objects.\n- Do NOT wrap the JSON inside an \"output\" field.\n- Do NOT use markdown or code fences.\n- \"confidence\" must be a number between 0 and 1.\n- \"sentiment\" must be exactly one of: positive, neutral, negative.\n- \"intent\" must describe the customer's primary reason for contacting us.\n- \"suggested_response\" must be a natural customer-facing response.\n\nExample:\n\n{\n  \"intent\": \"request_new_sim_card\",\n  \"sentiment\": \"neutral\",\n  \"confidence\": 0.99,\n  \"suggested_response\": \"I can certainly help you with that. To get started, could you please let me know if this is for a new line or a replacement for an existing number?\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -240,
+        -352
+      ],
+      "id": "09179df0-61e4-48cf-9353-b77cf3fba92e",
+      "name": "Customer Enquiry"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        576,
+        -400
+      ],
+      "id": "8960bcdc-ec7d-4e71-9546-077ac63ddb99",
+      "name": "+ Approval status"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9595b2c5-b861-423c-b78a-8fd647a1a1e2",
+              "name": "Name",
+              "value": "={{ $json.Name }}",
+              "type": "string"
+            },
+            {
+              "id": "8b9838e4-9ce7-4221-b383-6fccde6b1ad7",
+              "name": "Email",
+              "value": "={{ $json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "96dab96d-8318-482d-b89e-2ca96d0d804c",
+              "name": "Complaint",
+              "value": "={{ $json.Complaint }}",
+              "type": "string"
+            },
+            {
+              "id": "e618c564-fa78-4d72-a56e-3629d9870d80",
+              "name": "sessionId",
+              "value": "={{ $json.sessionId }}",
+              "type": "string"
+            },
+            {
+              "id": "8ac34a02-9df1-412f-8b2e-303a50042beb",
+              "name": "submittedAt",
+              "value": "={{ $json.sessionId }}",
+              "type": "string"
+            },
+            {
+              "id": "e6370f85-f500-4f1b-b98f-f92d7dda0c67",
+              "name": "intent",
+              "value": "={{ $json.intent }}",
+              "type": "string"
+            },
+            {
+              "id": "ec7ec0a8-cd48-4262-b684-e01a4a6449f8",
+              "name": "sentiment",
+              "value": "={{ $json.sentiment }}",
+              "type": "string"
+            },
+            {
+              "id": "f9883c5a-2de3-4bb0-b995-e3023121b157",
+              "name": "confidence",
+              "value": "={{ $json.confidence }}",
+              "type": "number"
+            },
+            {
+              "id": "5958d41e-940d-45e0-97eb-d16dbb4c2852",
+              "name": "suggested_response",
+              "value": "={{ $json.suggested_response }}",
+              "type": "string"
+            },
+            {
+              "id": "7a2de1b5-6f01-4d70-9f4c-790f82934596",
+              "name": "data.approved",
+              "value": "={{ $json.data.approved }}",
+              "type": "boolean"
+            },
+            {
+              "id": "bc56dee6-4d8d-451a-9904-b9db956beaa9",
+              "name": "data.respondedAt",
+              "value": "={{ $json.data.respondedAt }}",
+              "type": "string"
+            },
+            {
+              "id": "f3da293c-c581-4aa6-ac94-20b7756c2974",
+              "name": "submissionID",
+              "value": "={{ $json.sessionId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        -272
+      ],
+      "id": "79f197c0-fe24-4bd1-92e4-6f291b384fad",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        224,
+        -416
+      ],
+      "id": "5707c7aa-5284-4e90-b25e-3727731d203e",
+      "name": "Metadata + AI"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Metadata + AI').item.json.Email }}",
+        "subject": "Response to Inquiry",
+        "message": "=Hi {{ $('Metadata + AI').item.json.Name }}.\nGood day to you.\nThank you for reaching out to us.\nWe received your inquiry: {{ $('Metadata + AI').item.json.Complaint }}.\n\n{{  ($json.data.text|| $('Metadata + AI').item.json.suggested_response).split(/\\n\\s*\\n/).map(p => '<p>' + p.trim() + '</p>').join('') }}\n\nBest regards,<br>\nCustomer Support Team <br>\nXYZ company",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "XYZ Company"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        -416
+      ],
+      "id": "e0242a6d-9488-4d17-9bd3-45a139235409",
+      "name": "Send final response",
+      "webhookId": "nslsdsds-ds-sdsds-d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Fd6B3RLjo29v0bNL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "gmail@gmail.com",
+        "subject": "Customer Feedback Review",
+        "message": "=Name: {{ $json.Name }}\nComplaint: {{ $json.Complaint }}\nAI class: {{ $json.intent }}\n\nPlease edit this response before sending:\n\nAI Response: {{ $json.suggested_response }}",
+        "responseType": "freeText",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        -272
+      ],
+      "id": "5d3b9cef-1696-4aba-9502-67d31a0a05b1",
+      "name": "Final review (Send and Wait)",
+      "webhookId": "nslsdsds-ds-sdsds-d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Fd6B3RLjo23439v0bNL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "jdkfnkfkdjfk-jjj",
+          "mode": "list",
+          "cachedResultName": "Customer Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/jfkndnfdjnkfnjkkj-kj-kjbkjbjk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "P1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/jfkndnfdjnkfnjkkj-kj-kjbkjbjk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "NAME": "={{ $('Metadata + AI').item.json.Name }}",
+            "EMAIL": "={{ $('Metadata + AI').item.json.Email }}",
+            "COMPLAINT": "={{ $('Metadata + AI').item.json.Complaint }}",
+            "RESPONSE": "={{ $('Final review (Send and Wait)').item.json.data.text||$('+ Approval status').item.json.suggested_response }}",
+            "TIME": "={{ $('Metadata + AI').item.json.submittedAt }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "NAME",
+              "displayName": "NAME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "EMAIL",
+              "displayName": "EMAIL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "COMPLAINT",
+              "displayName": "COMPLAINT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "TIME",
+              "displayName": "TIME",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RESPONSE",
+              "displayName": "RESPONSE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1376,
+        -416
+      ],
+      "id": "588c0c28-2536-43ab-b1ca-e55266c6735e",
+      "name": "Log complaint & response",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jfdkdfjjb343kjb4",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Customer Enquiry",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New enquiry": {
+      "main": [
+        [
+          {
+            "node": "Cleans data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processes enquiry": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Customer Enquiry",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleans data": {
+      "main": [
+        [
+          {
+            "node": "Customer Enquiry",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Metadata + AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse output": {
+      "main": [
+        [
+          {
+            "node": "Metadata + AI",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Approved or not?": {
+      "main": [
+        [
+          {
+            "node": "Send final response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send for approval": {
+      "main": [
+        [
+          {
+            "node": "+ Approval status",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Customer Enquiry": {
+      "main": [
+        [
+          {
+            "node": "Parse output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "+ Approval status": {
+      "main": [
+        [
+          {
+            "node": "Approved or not?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Final review (Send and Wait)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Metadata + AI": {
+      "main": [
+        [
+          {
+            "node": "Send for approval",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "+ Approval status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final review (Send and Wait)": {
+      "main": [
+        [
+          {
+            "node": "Send final response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send final response": {
+      "main": [
+        [
+          {
+            "node": "Log complaint & response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "1e9cde26-0339-4a54-b775-3bb5020326bb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "439b9d53da99434343434h3hjhj5j54545j4541"
+  },
+  "nodeGroups": [],
+  "id": "jC2McpD8QOioMEjp",
+  "tags": []
+}
